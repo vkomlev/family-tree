@@ -64,7 +64,7 @@ footer{padding:16px;color:var(--muted);font-size:13px;text-align:center}
 </main>
 <footer>Данные: <code>people.json</code>. Разверните своё древо — <a href="https://github.com/vkomlev/family-tree">исходники на GitHub</a>.</footer>
 <script>
-const GENS = 5;
+const GENS = 15;
 let P = {}, meta = {};
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const full = p => [p.surname, p.name, p.patronymic].filter(Boolean).join(" ") + (p.maiden ? ` (${p.maiden})` : "");
