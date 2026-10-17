@@ -32,6 +32,11 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;padding:16p
 .box.empty{background:transparent;border:1px dashed var(--line);color:var(--muted);cursor:default}
 .box b{display:block;font-weight:600}
 .box small{color:var(--muted)}
+.sect{margin:22px 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.couple{display:flex;gap:6px;align-items:center}
+.couple .amp{color:var(--muted)}
+.kids{margin:8px 0 0 18px;padding-left:14px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
 aside{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;align-self:start}
 aside h2{margin:0 0 4px;font-size:19px}
 aside h3{margin:14px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
@@ -105,9 +110,22 @@ function card(id){
     ${list("Источники", (p.sources || []).map(s => `<li>${esc(s)}</li>`))}
     ${(p.photos || []).length ? `<h3>Фото и документы</h3>${p.photos.map(src => `<a href="${esc(src)}" target="_blank"><img src="${esc(src)}" alt="" loading="lazy"></a>`).join("")}` : ""}`;
 }
+function desc(id, depth){
+  const p = P[id];
+  const sp = spousesOf(p).map(s => `<span class="amp">&amp;</span>${box(s.id)}`).join("");
+  const kids = depth > 0 ? childrenOf(id) : [];
+  return `<div><div class="couple">${box(id)}${sp}</div>${kids.length ? `<div class="kids">${kids.map(c => desc(c.id, depth - 1)).join("")}</div>` : ""}</div>`;
+}
+function family(id){
+  const p = P[id];
+  const sib = Object.values(P).filter(o => o.id !== id && ((p.father && o.father === p.father) || (p.mother && o.mother === p.mother)));
+  let h = `<div class="sect" style="margin-top:0">Семья и потомки</div>${desc(id, 3)}`;
+  if (sib.length) h += `<div class="sect">Братья и сёстры</div><div class="kids" style="margin-left:0">${sib.map(s => desc(s.id, 2)).join("")}</div>`;
+  return h;
+}
 function show(id){
   if (!P[id]) id = meta.root;
-  document.getElementById("tree").innerHTML = ped(id, 0);
+  document.getElementById("tree").innerHTML = `${family(id)}<div class="sect">Предки</div>${ped(id, 0)}`;
   document.getElementById("card").innerHTML = card(id);
 }
 document.addEventListener("click", e => { const t = e.target.closest("[data-id]"); if (t) { go(t.dataset.id); scrollTo({top:0, behavior:"smooth"}); } });
