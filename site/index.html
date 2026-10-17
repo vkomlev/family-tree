@@ -52,6 +52,11 @@ aside figcaption{font-size:13px;color:var(--muted)}
 aside img{max-width:100%;border-radius:6px;margin-top:6px}
 .muted{color:var(--muted)}
 footer{padding:16px;color:var(--muted);font-size:13px;text-align:center}
+.pedwrap.big{height:calc(100vh - 140px)}
+#mini{position:fixed;right:16px;bottom:16px;width:220px;height:160px;background:var(--card);opacity:.82;border:1px solid var(--line);border-radius:8px;overflow:hidden;z-index:10;display:none;cursor:pointer;touch-action:none}
+#mini:hover{opacity:.95}
+#mini .shot{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none}
+#mini .view{position:absolute;border:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 15%,transparent);border-radius:3px}
 </style>
 </head>
 <body>
@@ -70,6 +75,7 @@ footer{padding:16px;color:var(--muted);font-size:13px;text-align:center}
   <section class="tree" id="tree"></section>
   <aside id="card"></aside>
 </main>
+<div id="mini" aria-hidden="true"><div class="shot"></div><div class="view"></div></div>
 <footer id="foot"></footer>
 <script>
 const GENS = 15;
@@ -179,15 +185,45 @@ function fit(){
   if (!w) return;
   i.style.zoom = 1;
   const k = Math.min(1, w.clientWidth / i.scrollWidth);
+  const on = big && k < 1;
   i.style.zoom = big ? 1 : k;
+  w.classList.toggle("big", on);
   b.style.display = k < 1 ? "" : "none";
   b.textContent = big ? T("fit") : T("bigger");
+  mini(on);
 }
+const M = document.getElementById("mini");
+let ms = 1;
+function mini(on){
+  M.style.display = on ? "block" : "none";
+  if (!on) return;
+  const w = document.getElementById("pedwrap"), i = document.getElementById("pedin");
+  ms = Math.min(M.clientWidth / w.scrollWidth, M.clientHeight / w.scrollHeight);
+  const shot = M.querySelector(".shot");
+  shot.innerHTML = ""; shot.appendChild(i.cloneNode(true)).removeAttribute("id");
+  shot.style.transform = `scale(${ms})`;
+  mview();
+}
+function mview(){
+  const w = document.getElementById("pedwrap"), v = M.querySelector(".view");
+  if (!w || M.style.display === "none") return;
+  Object.assign(v.style, {left: w.scrollLeft * ms + "px", top: w.scrollTop * ms + "px", width: w.clientWidth * ms + "px", height: w.clientHeight * ms + "px"});
+}
+function mjump(e){
+  const w = document.getElementById("pedwrap"), r = M.getBoundingClientRect();
+  w.scrollLeft = (e.clientX - r.left) / ms - w.clientWidth / 2;
+  w.scrollTop = (e.clientY - r.top) / ms - w.clientHeight / 2;
+}
+let mdrag = false;
+M.addEventListener("pointerdown", e => { mdrag = true; M.setPointerCapture(e.pointerId); mjump(e); });
+M.addEventListener("pointermove", e => { if (mdrag) mjump(e); });
+M.addEventListener("pointerup", () => { mdrag = false; });
+document.addEventListener("scroll", e => { if (e.target.id === "pedwrap") mview(); }, true);
 addEventListener("resize", fit);
 document.addEventListener("click", e => { if (e.target.id === "zoom") { big = !big; fit(); } });
 let dragging = null;
-document.addEventListener("pointerdown", e => { const w = e.target.closest(".pedwrap"); if (w && !e.target.closest("[data-id]")) dragging = {w, x:e.clientX, y:e.clientY, l:w.scrollLeft, t:scrollY}; });
-document.addEventListener("pointermove", e => { if (!dragging) return; dragging.w.classList.add("drag"); dragging.w.scrollLeft = dragging.l - (e.clientX - dragging.x); scrollTo(0, dragging.t - (e.clientY - dragging.y)); });
+document.addEventListener("pointerdown", e => { const w = e.target.closest(".pedwrap"); if (w && !e.target.closest("[data-id]")) dragging = {w, x:e.clientX, y:e.clientY, l:w.scrollLeft, t:w.scrollTop, py:scrollY}; });
+document.addEventListener("pointermove", e => { if (!dragging) return; dragging.w.classList.add("drag"); dragging.w.scrollLeft = dragging.l - (e.clientX - dragging.x); if (dragging.w.classList.contains("big")) dragging.w.scrollTop = dragging.t - (e.clientY - dragging.y); else scrollTo(0, dragging.py - (e.clientY - dragging.y)); });
 document.addEventListener("pointerup", () => { if (dragging) dragging.w.classList.remove("drag"); dragging = null; });
 function go(id){ if (decodeURIComponent(location.hash.slice(1)) === id) show(id); else location.hash = id; }
 document.getElementById("back").onclick = () => history.back();
