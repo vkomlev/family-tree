@@ -20,6 +20,7 @@
 ```json
 {
   "meta": {"title": "Древо семьи", "root": "id-корня", "hideLiving": true},
+  "captions": {"photos/файл.jpg": "Подпись к фото: кто, где, когда"},
   "people": [
     {
       "id": "ivanov-ivan",
