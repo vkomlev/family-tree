@@ -32,6 +32,10 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;padding:16p
 .box.empty{background:transparent;border:1px dashed var(--line);color:var(--muted);cursor:default}
 .box b{display:block;font-weight:600}
 .box small{color:var(--muted)}
+.pedwrap{overflow:auto;cursor:grab;max-width:100%}
+.pedwrap.drag{cursor:grabbing;user-select:none}
+.zoomrow{display:flex;gap:8px;align-items:center;margin:22px 0 8px}
+.zoomrow .sect{margin:0;flex:1}
 .sect{margin:22px 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .couple{display:flex;gap:6px;align-items:center}
@@ -125,8 +129,9 @@ function family(id){
 }
 function show(id){
   if (!P[id]) id = meta.root;
-  document.getElementById("tree").innerHTML = `${family(id)}<div class="sect">Предки</div>${ped(id, 0)}`;
+  document.getElementById("tree").innerHTML = `${family(id)}<div class="zoomrow"><div class="sect">Предки</div><button id="zoom">Крупнее</button></div><div class="pedwrap" id="pedwrap"><div id="pedin">${ped(id, 0)}</div></div>`;
   document.getElementById("card").innerHTML = card(id);
+  fit();
 }
 document.addEventListener("click", e => { const t = e.target.closest("[data-id]"); if (t) { go(t.dataset.id); scrollTo({top:0, behavior:"smooth"}); } });
 document.getElementById("q").addEventListener("change", e => {
@@ -139,6 +144,22 @@ fetch("people.json").then(r => r.json()).then(d => {
   document.getElementById("names").innerHTML = d.people.map(p => `<option value="${esc(full(p))}">`).join("");
   show(decodeURIComponent(location.hash.slice(1)) || meta.root);
 });
+let big = false;
+function fit(){
+  const w = document.getElementById("pedwrap"), i = document.getElementById("pedin"), b = document.getElementById("zoom");
+  if (!w) return;
+  i.style.zoom = 1;
+  const k = Math.min(1, w.clientWidth / i.scrollWidth);
+  i.style.zoom = big ? 1 : k;
+  b.style.display = k < 1 ? "" : "none";
+  b.textContent = big ? "Уместить" : "Крупнее";
+}
+addEventListener("resize", fit);
+document.addEventListener("click", e => { if (e.target.id === "zoom") { big = !big; fit(); } });
+let dragging = null;
+document.addEventListener("pointerdown", e => { const w = e.target.closest(".pedwrap"); if (w && !e.target.closest("[data-id]")) dragging = {w, x:e.clientX, y:e.clientY, l:w.scrollLeft, t:scrollY}; });
+document.addEventListener("pointermove", e => { if (!dragging) return; dragging.w.classList.add("drag"); dragging.w.scrollLeft = dragging.l - (e.clientX - dragging.x); scrollTo(0, dragging.t - (e.clientY - dragging.y)); });
+document.addEventListener("pointerup", () => { if (dragging) dragging.w.classList.remove("drag"); dragging = null; });
 function go(id){ if (decodeURIComponent(location.hash.slice(1)) === id) show(id); else location.hash = id; }
 document.getElementById("back").onclick = () => history.back();
 document.getElementById("fwd").onclick = () => history.forward();
