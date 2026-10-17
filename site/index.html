@@ -13,6 +13,7 @@ header{padding:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;bord
 h1{font-size:20px;margin:0;flex:1 1 auto}
 .nav{display:flex;gap:6px}
 button{font:inherit;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
 button:hover{border-color:var(--accent)}
 input{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);width:min(280px,100%)}
 main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;padding:16px;max-width:1400px;margin:auto}
@@ -56,21 +57,34 @@ footer{padding:16px;color:var(--muted);font-size:13px;text-align:center}
 <body>
 <header>
   <nav class="nav">
-    <button id="back" title="Назад" aria-label="Назад">&larr;</button>
-    <button id="fwd" title="Вперёд" aria-label="Вперёд">&rarr;</button>
-    <button id="home" title="На главную" aria-label="На главную">&#8962; Главная</button>
+    <button id="back">&larr;</button>
+    <button id="fwd">&rarr;</button>
+    <button id="home"></button>
   </nav>
   <h1 id="title">Фамильное древо</h1>
-  <input id="q" list="names" placeholder="Найти человека…">
+  <input id="q" list="names">
+  <nav class="nav" id="langs"></nav>
   <datalist id="names"></datalist>
 </header>
 <main>
   <section class="tree" id="tree"></section>
   <aside id="card"></aside>
 </main>
-<footer>Данные: <code>people.json</code>. Разверните своё древо — <a href="https://github.com/vkomlev/family-tree">исходники на GitHub</a>.</footer>
+<footer id="foot"></footer>
 <script>
 const GENS = 15;
+const LANGS = {
+  ru: {back:"Назад", fwd:"Вперёд", home:"Главная", find:"Найти человека…", unknown:"неизвестно", birth:"Рождение", death:"Смерть",
+       parents:"Родители", spouses:"Супруги", children:"Дети", siblings:"Братья и сёстры", notes:"Заметки", sources:"Источники",
+       photos:"Фото и документы", family:"Семья и потомки", ancestors:"Предки", bigger:"Крупнее", fit:"Уместить", married:"брак",
+       foot:'Данные: <code>people.json</code>. Разверните своё древо — <a href="https://github.com/vkomlev/family-tree">исходники на GitHub</a>.'},
+  it: {back:"Indietro", fwd:"Avanti", home:"Inizio", find:"Cerca una persona…", unknown:"sconosciuto", birth:"Nascita", death:"Morte",
+       parents:"Genitori", spouses:"Coniugi", children:"Figli", siblings:"Fratelli e sorelle", notes:"Note", sources:"Fonti",
+       photos:"Foto e documenti", family:"Famiglia e discendenti", ancestors:"Antenati", bigger:"Ingrandisci", fit:"Adatta", married:"matrimonio",
+       foot:'Dati: <code>people.it.json</code>. Crea il tuo albero — <a href="https://github.com/vkomlev/family-tree">codice su GitHub</a>.'}
+};
+const LANG = (() => { const q = new URLSearchParams(location.search).get("lang"); return LANGS[q] ? q : "ru"; })();
+const T = k => LANGS[LANG][k];
 let P = {}, meta = {}, CAP = {};
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const full = p => [p.surname, p.name, p.patronymic].filter(Boolean).join(" ") + (p.maiden ? ` (${p.maiden})` : "");
@@ -83,7 +97,7 @@ function years(p){
 }
 function box(id, cur){
   const p = P[id];
-  if (!p) return `<div class="box empty">неизвестно</div>`;
+  if (!p) return `<div class="box empty">${T("unknown")}</div>`;
   return `<div class="box ${p.sex === "f" ? "f" : ""} ${cur ? "cur" : ""}" data-id="${id}"><b>${esc(p.surname)} ${esc(p.name)}</b>${esc(p.patronymic || "")}<br><small>${esc(years(p))}</small></div>`;
 }
 function ped(id, g){
@@ -107,14 +121,14 @@ function card(id){
   const sib = Object.values(P).filter(o => o.id !== id && ((p.father && o.father === p.father) || (p.mother && o.mother === p.mother)));
   const list = (t, arr) => arr.length ? `<h3>${t}</h3><ul>${arr.join("")}</ul>` : "";
   return `<h2>${esc(full(p))}</h2>
-    ${ev("Рождение", p.birth)}${ev("Смерть", p.death)}
-    ${list("Родители", [p.father, p.mother].filter(x => P[x]).map(x => `<li>${link(x)}</li>`))}
-    ${list("Супруги", spousesOf(p).map(s => `<li>${link(s.id)}${s.date ? `, брак ${esc(fmt(s.date))} ${esc(s.place || "")}` : ""}</li>`))}
-    ${list("Дети", childrenOf(id).map(c => `<li>${link(c.id)}</li>`))}
-    ${list("Братья и сёстры", sib.map(c => `<li>${link(c.id)}</li>`))}
-    ${p.notes ? `<h3>Заметки</h3><div>${esc(p.notes)}</div>` : ""}
-    ${list("Источники", (p.sources || []).map(s => `<li>${esc(s)}</li>`))}
-    ${(p.photos || []).length ? `<h3>Фото и документы</h3>${p.photos.map(src => `<figure><a href="${esc(src)}" target="_blank"><img src="${esc(src)}" alt="${esc(CAP[src] || "")}" loading="lazy"></a>${CAP[src] ? `<figcaption>${esc(CAP[src])}</figcaption>` : ""}</figure>`).join("")}` : ""}`;
+    ${ev(T("birth"), p.birth)}${ev(T("death"), p.death)}
+    ${list(T("parents"), [p.father, p.mother].filter(x => P[x]).map(x => `<li>${link(x)}</li>`))}
+    ${list(T("spouses"), spousesOf(p).map(s => `<li>${link(s.id)}${s.date ? `, ${T("married")} ${esc(fmt(s.date))} ${esc(s.place || "")}` : ""}</li>`))}
+    ${list(T("children"), childrenOf(id).map(c => `<li>${link(c.id)}</li>`))}
+    ${list(T("siblings"), sib.map(c => `<li>${link(c.id)}</li>`))}
+    ${p.notes ? `<h3>${T("notes")}</h3><div>${esc(p.notes)}</div>` : ""}
+    ${list(T("sources"), (p.sources || []).map(s => `<li>${esc(s)}</li>`))}
+    ${(p.photos || []).length ? `<h3>${T("photos")}</h3>${p.photos.map(src => `<figure><a href="${esc(src)}" target="_blank"><img src="${esc(src)}" alt="${esc(CAP[src] || "")}" loading="lazy"></a>${CAP[src] ? `<figcaption>${esc(CAP[src])}</figcaption>` : ""}</figure>`).join("")}` : ""}`;
 }
 function desc(id, depth){
   const p = P[id];
@@ -125,13 +139,13 @@ function desc(id, depth){
 function family(id){
   const p = P[id];
   const sib = Object.values(P).filter(o => o.id !== id && ((p.father && o.father === p.father) || (p.mother && o.mother === p.mother)));
-  let h = `<div class="sect" style="margin-top:0">Семья и потомки</div>${desc(id, 3)}`;
-  if (sib.length) h += `<div class="sect">Братья и сёстры</div><div class="kids" style="margin-left:0">${sib.map(s => desc(s.id, 2)).join("")}</div>`;
+  let h = `<div class="sect" style="margin-top:0">${T("family")}</div>${desc(id, 3)}`;
+  if (sib.length) h += `<div class="sect">${T("siblings")}</div><div class="kids" style="margin-left:0">${sib.map(s => desc(s.id, 2)).join("")}</div>`;
   return h;
 }
 function show(id){
   if (!P[id]) id = meta.root;
-  document.getElementById("tree").innerHTML = `${family(id)}<div class="zoomrow"><div class="sect">Предки</div><button id="zoom">Крупнее</button></div><div class="pedwrap" id="pedwrap"><div id="pedin">${ped(id, 0)}</div></div>`;
+  document.getElementById("tree").innerHTML = `${family(id)}<div class="zoomrow"><div class="sect">${T("ancestors")}</div><button id="zoom">${T("bigger")}</button></div><div class="pedwrap" id="pedwrap"><div id="pedin">${ped(id, 0)}</div></div>`;
   document.getElementById("card").innerHTML = card(id);
   fit();
 }
@@ -140,7 +154,20 @@ document.getElementById("q").addEventListener("change", e => {
   const hit = Object.values(P).find(p => full(p) === e.target.value) || Object.values(P).find(p => full(p).toLowerCase().includes(e.target.value.toLowerCase()));
   if (hit) go(hit.id);
 });
-fetch("people.json").then(r => r.json()).then(d => {
+document.documentElement.lang = LANG;
+for (const k of ["back", "fwd"]) { const b = document.getElementById(k); b.title = T(k); b.setAttribute("aria-label", T(k)); }
+document.getElementById("home").innerHTML = "&#8962; " + T("home");
+document.getElementById("q").placeholder = T("find");
+document.getElementById("foot").innerHTML = T("foot");
+document.getElementById("langs").innerHTML = Object.keys(LANGS).map(l => `<button data-lang="${l}"${l === LANG ? ' disabled' : ''}>${l.toUpperCase()}</button>`).join("");
+document.getElementById("langs").addEventListener("click", e => { const l = e.target.dataset.lang; if (l) location.href = `?lang=${l}${location.hash}`; });
+const load = f => fetch(f).then(r => r.ok ? r.json() : null).catch(() => null);
+Promise.all([load("people.json"), LANG === "ru" ? null : load(`people.${LANG}.json`)]).then(([d, tr]) => {
+  if (tr) {
+    Object.assign(d.meta, tr.meta || {});
+    d.captions = {...(d.captions || {}), ...(tr.captions || {})};
+    d.people.forEach(p => Object.assign(p, (tr.people || {})[p.id] || {}));
+  }
   meta = d.meta; CAP = d.captions || {}; d.people.forEach(p => P[p.id] = p);
   document.title = meta.title; document.getElementById("title").textContent = meta.title;
   document.getElementById("names").innerHTML = d.people.map(p => `<option value="${esc(full(p))}">`).join("");
@@ -154,7 +181,7 @@ function fit(){
   const k = Math.min(1, w.clientWidth / i.scrollWidth);
   i.style.zoom = big ? 1 : k;
   b.style.display = k < 1 ? "" : "none";
-  b.textContent = big ? "Уместить" : "Крупнее";
+  b.textContent = big ? T("fit") : T("bigger");
 }
 addEventListener("resize", fit);
 document.addEventListener("click", e => { if (e.target.id === "zoom") { big = !big; fit(); } });

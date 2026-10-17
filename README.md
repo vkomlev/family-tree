@@ -47,3 +47,9 @@
 ## Справочник
 
 `python tools/build_reference.py [путь/к/people.json]` собирает `docs/reference.md` — читаемый список всех людей по фамилиям.
+
+## Языки
+
+Переключатель RU / IT вверху страницы (`?lang=it`). Перевод данных — файл `people.<язык>.json` рядом с `people.json`:
+`{"meta": {"title": "…"}, "people": {"<id>": {"name": "…", "notes": "…"}}, "captions": {"photos/…": "…"}}` —
+поля из него заменяют русские. Подписи интерфейса — объект `LANGS` в `index.html`.
