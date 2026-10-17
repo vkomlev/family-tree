@@ -19,7 +19,10 @@ def fmt(date: str | None) -> str:
     if not date:
         return ""
     m = re.fullmatch(r"(\d{4})-(\d\d)-(\d\d)", date)
-    return f"{m[3]}.{m[2]}.{m[1]}" if m else date
+    if m:
+        return f"{m[3]}.{m[2]}.{m[1]}"
+    m = re.fullmatch(r"(\d{4})-(\d\d)", date)
+    return f"{m[2]}.{m[1]}" if m else date
 
 
 def full(p: dict) -> str:
