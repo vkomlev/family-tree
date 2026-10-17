@@ -11,6 +11,9 @@
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Georgia,"PT Serif",serif}
 header{padding:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line)}
 h1{font-size:20px;margin:0;flex:1 1 auto}
+.nav{display:flex;gap:6px}
+button{font:inherit;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--accent)}
 input{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);width:min(280px,100%)}
 main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;padding:16px;max-width:1400px;margin:auto}
 @media (max-width:900px){main{grid-template-columns:1fr}}
@@ -41,6 +44,11 @@ footer{padding:16px;color:var(--muted);font-size:13px;text-align:center}
 </head>
 <body>
 <header>
+  <nav class="nav">
+    <button id="back" title="Назад" aria-label="Назад">&larr;</button>
+    <button id="fwd" title="Вперёд" aria-label="Вперёд">&rarr;</button>
+    <button id="home" title="На главную" aria-label="На главную">&#8962; Главная</button>
+  </nav>
   <h1 id="title">Фамильное древо</h1>
   <input id="q" list="names" placeholder="Найти человека…">
   <datalist id="names"></datalist>
@@ -101,12 +109,11 @@ function show(id){
   if (!P[id]) id = meta.root;
   document.getElementById("tree").innerHTML = ped(id, 0);
   document.getElementById("card").innerHTML = card(id);
-  if (location.hash.slice(1) !== id) history.replaceState(null, "", "#" + id);
 }
-document.addEventListener("click", e => { const t = e.target.closest("[data-id]"); if (t) { show(t.dataset.id); scrollTo({top:0, behavior:"smooth"}); } });
+document.addEventListener("click", e => { const t = e.target.closest("[data-id]"); if (t) { go(t.dataset.id); scrollTo({top:0, behavior:"smooth"}); } });
 document.getElementById("q").addEventListener("change", e => {
   const hit = Object.values(P).find(p => full(p) === e.target.value) || Object.values(P).find(p => full(p).toLowerCase().includes(e.target.value.toLowerCase()));
-  if (hit) show(hit.id);
+  if (hit) go(hit.id);
 });
 fetch("people.json").then(r => r.json()).then(d => {
   meta = d.meta; d.people.forEach(p => P[p.id] = p);
@@ -114,6 +121,10 @@ fetch("people.json").then(r => r.json()).then(d => {
   document.getElementById("names").innerHTML = d.people.map(p => `<option value="${esc(full(p))}">`).join("");
   show(decodeURIComponent(location.hash.slice(1)) || meta.root);
 });
+function go(id){ if (decodeURIComponent(location.hash.slice(1)) === id) show(id); else location.hash = id; }
+document.getElementById("back").onclick = () => history.back();
+document.getElementById("fwd").onclick = () => history.forward();
+document.getElementById("home").onclick = () => go(meta.root);
 addEventListener("hashchange", () => show(decodeURIComponent(location.hash.slice(1))));
 </script>
 </body>
