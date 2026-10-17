@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Фамильное древо</title>
+<style>
+:root{--bg:#f6f3ee;--card:#fff;--ink:#2b2622;--muted:#7a6f66;--line:#cbbfb3;--m:#dfe8f5;--f:#f7e1e4;--accent:#8a5a2b}
+@media (prefers-color-scheme:dark){:root{--bg:#1c1a18;--card:#262320;--ink:#ece6df;--muted:#a59a8f;--line:#4a443e;--m:#26354a;--f:#4a2a31;--accent:#d9a46a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Georgia,"PT Serif",serif}
+header{padding:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+h1{font-size:20px;margin:0;flex:1 1 auto}
+input{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);width:min(280px,100%)}
+main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;padding:16px;max-width:1400px;margin:auto}
+@media (max-width:900px){main{grid-template-columns:1fr}}
+.tree{overflow-x:auto;padding-bottom:8px}
+.ped{display:flex;align-items:center}
+.ped>.par{display:flex;flex-direction:column;justify-content:center;margin-left:22px;position:relative}
+.ped>.par::before{content:"";position:absolute;left:-22px;top:50%;width:11px;border-top:1px solid var(--line)}
+.ped>.par>.ped{position:relative;padding:4px 0}
+.ped>.par>.ped::before{content:"";position:absolute;left:-11px;top:0;bottom:0;border-left:1px solid var(--line)}
+.ped>.par>.ped:first-child::before{top:50%}
+.ped>.par>.ped:last-child::before{bottom:50%}
+.ped>.par>.ped>.box::before{content:"";position:absolute;left:-11px;top:50%;width:11px;border-top:1px solid var(--line)}
+.box{position:relative;min-width:150px;max-width:190px;padding:6px 9px;border-radius:7px;background:var(--m);cursor:pointer;font-size:13px;border:1px solid transparent}
+.box.f{background:var(--f)}
+.box.cur{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.box.empty{background:transparent;border:1px dashed var(--line);color:var(--muted);cursor:default}
+.box b{display:block;font-weight:600}
+.box small{color:var(--muted)}
+aside{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;align-self:start}
+aside h2{margin:0 0 4px;font-size:19px}
+aside h3{margin:14px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+aside ul{margin:0;padding-left:18px}
+aside a{color:var(--accent);cursor:pointer;text-decoration:none}
+aside img{max-width:100%;border-radius:6px;margin-top:6px}
+.muted{color:var(--muted)}
+footer{padding:16px;color:var(--muted);font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Фамильное древо</h1>
+  <input id="q" list="names" placeholder="Найти человека…">
+  <datalist id="names"></datalist>
+</header>
+<main>
+  <section class="tree" id="tree"></section>
+  <aside id="card"></aside>
+</main>
+<footer>Данные: <code>people.json</code>. Разверните своё древо — <a href="https://github.com/vkomlev/family-tree">исходники на GitHub</a>.</footer>
+<script>
+const GENS = 5;
+let P = {}, meta = {};
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const full = p => [p.surname, p.name, p.patronymic].filter(Boolean).join(" ") + (p.maiden ? ` (${p.maiden})` : "");
+const fmt = d => !d ? "" : d.replace(/^(\d{4})-(\d\d)-(\d\d)$/, "$3.$2.$1");
+const hide = p => p.living && meta.hideLiving !== false;
+function years(p){
+  if (hide(p)) return "";
+  const b = fmt(p.birth?.date), d = fmt(p.death?.date);
+  return b || d ? `${b || "?"}${d ? " – " + d : ""}` : "";
+}
+function box(id, cur){
+  const p = P[id];
+  if (!p) return `<div class="box empty">неизвестно</div>`;
+  return `<div class="box ${p.sex === "f" ? "f" : ""} ${cur ? "cur" : ""}" data-id="${id}"><b>${esc(p.surname)} ${esc(p.name)}</b>${esc(p.patronymic || "")}<br><small>${esc(years(p))}</small></div>`;
+}
+function ped(id, g){
+  const p = P[id];
+  let h = `<div class="ped">${box(id, g === 0)}`;
+  if (p && g < GENS - 1 && (p.father || p.mother))
+    h += `<div class="par">${ped(p.father, g + 1)}${ped(p.mother, g + 1)}</div>`;
+  return h + "</div>";
+}
+const link = id => P[id] ? `<a data-id="${id}">${esc(full(P[id]))}</a>` : "";
+const childrenOf = id => Object.values(P).filter(c => c.father === id || c.mother === id);
+function spousesOf(p){
+  const s = new Map((p.spouses || []).map(x => [x.id, x]));
+  Object.values(P).forEach(o => (o.spouses || []).forEach(x => { if (x.id === p.id && !s.has(o.id)) s.set(o.id, {...x, id:o.id}); }));
+  childrenOf(p.id).forEach(c => { const o = c.father === p.id ? c.mother : c.father; if (o && !s.has(o)) s.set(o, {id:o}); });
+  return [...s.values()];
+}
+function card(id){
+  const p = P[id];
+  const ev = (label, e) => e && !hide(p) && (e.date || e.place) ? `<div><span class="muted">${label}:</span> ${esc(fmt(e.date))} ${esc(e.place || "")} ${e.cause ? "— " + esc(e.cause) : ""}</div>` : "";
+  const sib = Object.values(P).filter(o => o.id !== id && ((p.father && o.father === p.father) || (p.mother && o.mother === p.mother)));
+  const list = (t, arr) => arr.length ? `<h3>${t}</h3><ul>${arr.join("")}</ul>` : "";
+  return `<h2>${esc(full(p))}</h2>
+    ${ev("Рождение", p.birth)}${ev("Смерть", p.death)}
+    ${list("Родители", [p.father, p.mother].filter(x => P[x]).map(x => `<li>${link(x)}</li>`))}
+    ${list("Супруги", spousesOf(p).map(s => `<li>${link(s.id)}${s.date ? `, брак ${esc(fmt(s.date))} ${esc(s.place || "")}` : ""}</li>`))}
+    ${list("Дети", childrenOf(id).map(c => `<li>${link(c.id)}</li>`))}
+    ${list("Братья и сёстры", sib.map(c => `<li>${link(c.id)}</li>`))}
+    ${p.notes ? `<h3>Заметки</h3><div>${esc(p.notes)}</div>` : ""}
+    ${list("Источники", (p.sources || []).map(s => `<li>${esc(s)}</li>`))}
+    ${(p.photos || []).length ? `<h3>Фото и документы</h3>${p.photos.map(src => `<a href="${esc(src)}" target="_blank"><img src="${esc(src)}" alt="" loading="lazy"></a>`).join("")}` : ""}`;
+}
+function show(id){
+  if (!P[id]) id = meta.root;
+  document.getElementById("tree").innerHTML = ped(id, 0);
+  document.getElementById("card").innerHTML = card(id);
+  if (location.hash.slice(1) !== id) history.replaceState(null, "", "#" + id);
+}
+document.addEventListener("click", e => { const t = e.target.closest("[data-id]"); if (t) { show(t.dataset.id); scrollTo({top:0, behavior:"smooth"}); } });
+document.getElementById("q").addEventListener("change", e => {
+  const hit = Object.values(P).find(p => full(p) === e.target.value) || Object.values(P).find(p => full(p).toLowerCase().includes(e.target.value.toLowerCase()));
+  if (hit) show(hit.id);
+});
+fetch("people.json").then(r => r.json()).then(d => {
+  meta = d.meta; d.people.forEach(p => P[p.id] = p);
+  document.title = meta.title; document.getElementById("title").textContent = meta.title;
+  document.getElementById("names").innerHTML = d.people.map(p => `<option value="${esc(full(p))}">`).join("");
+  show(decodeURIComponent(location.hash.slice(1)) || meta.root);
+});
+addEventListener("hashchange", () => show(decodeURIComponent(location.hash.slice(1))));
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "meta": {"title": "Древо семьи Ивановых (пример)", "root": "ivanov-sergei", "updated": "2026-10-17", "hideLiving": true},
+  "people": [
+    {"id": "ivanov-sergei", "surname": "Иванов", "name": "Сергей", "patronymic": "Петрович", "sex": "m", "living": true,
+     "birth": {"date": "1985-03-14", "place": "г. Самара"}, "father": "ivanov-petr", "mother": "ivanova-olga"},
+    {"id": "ivanov-petr", "surname": "Иванов", "name": "Пётр", "patronymic": "Николаевич", "sex": "m",
+     "birth": {"date": "1955-06-02", "place": "с. Красное"}, "death": {"date": "2020-11-30", "place": "г. Самара"},
+     "father": "ivanov-nikolai", "mother": "ivanova-anna", "spouses": [{"id": "ivanova-olga", "date": "1980", "place": "г. Самара"}]},
+    {"id": "ivanova-olga", "surname": "Иванова", "maiden": "Смирнова", "name": "Ольга", "patronymic": "Ивановна", "sex": "f", "living": true,
+     "birth": {"date": "1958-01-20", "place": "г. Сызрань"}, "father": "smirnov-ivan"},
+    {"id": "ivanov-nikolai", "surname": "Иванов", "name": "Николай", "patronymic": "Фёдорович", "sex": "m",
+     "birth": {"date": "~1925"}, "death": {"date": "1990"}, "spouses": [{"id": "ivanova-anna"}],
+     "notes": "Пример заметки: участник войны, награды уточнить.",
+     "sources": ["Пример источника: метрическая книга, лист 12"]},
+    {"id": "ivanova-anna", "surname": "Иванова", "maiden": "Кузнецова", "name": "Анна", "patronymic": "Сергеевна", "sex": "f", "birth": {"date": "1928"}},
+    {"id": "smirnov-ivan", "surname": "Смирнов", "name": "Иван", "patronymic": "Ильич", "sex": "m", "birth": {"date": "~1930"}},
+    {"id": "ivanova-maria", "surname": "Иванова", "name": "Мария", "patronymic": "Петровна", "sex": "f", "living": true,
+     "father": "ivanov-petr", "mother": "ivanova-olga"}
+  ]
+}
